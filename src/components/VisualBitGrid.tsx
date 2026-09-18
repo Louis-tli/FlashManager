@@ -275,14 +275,14 @@ export const VisualBitGrid: React.FC<VisualBitGridProps> = ({
       </div>
 
       {/* Visual Drag Grid Container (16 columns layout) */}
-      <div className="space-y-1">
-        <div className="flex justify-between items-center text-[11px] text-slate-500 font-mono">
-          <span>MSB [31]</span>
-          <span>드래그하여 셀 병합 / 더블클릭 0/1 토글</span>
-          <span>LSB [0]</span>
+      <div className="space-y-2">
+        <div className="flex justify-between items-center text-xs text-slate-400 font-mono font-semibold px-1">
+          <span className="flex items-center gap-1.5"><span className="w-2 h-2 rounded-full bg-blue-500"></span>MSB [31]</span>
+          <span>마우스 드래그로 범위 선택 후 [셀 합치기] • 클릭하여 0/1 토글</span>
+          <span className="flex items-center gap-1.5">LSB [0]<span className="w-2 h-2 rounded-full bg-emerald-500"></span></span>
         </div>
 
-        <div className="grid grid-cols-16 gap-1 p-2 bg-slate-950 rounded-lg border border-slate-800 overflow-x-auto">
+        <div className="grid grid-cols-16 gap-1.5 p-3 bg-slate-950 rounded-xl border border-slate-800 overflow-x-auto">
           {bitArray.map(bitIdx => {
             const field = getFieldForBit(bitIdx);
             const fieldIdx = field ? register.bitFields.indexOf(field) : -1;
@@ -296,27 +296,27 @@ export const VisualBitGrid: React.FC<VisualBitGridProps> = ({
                 key={bitIdx}
                 onMouseDown={e => handleBitMouseDown(bitIdx, e)}
                 onMouseEnter={() => handleBitMouseEnter(bitIdx)}
-                className={`flex flex-col items-center justify-center p-1 rounded cursor-pointer transition-all border select-none ${
+                className={`flex flex-col items-center justify-center p-1.5 min-w-[42px] h-[68px] rounded-xl cursor-pointer transition-all border select-none ${
                   isSelected
-                    ? 'ring-2 ring-blue-400 bg-blue-900/60 border-blue-400 z-10'
+                    ? 'ring-2 ring-blue-400 bg-blue-900/60 border-blue-400 z-10 scale-[1.02] shadow-lg shadow-blue-500/20'
                     : field
                     ? 'border-slate-700/80 hover:brightness-125'
                     : 'bg-slate-900 border-slate-800 text-slate-500 hover:bg-slate-850'
                 }`}
-                style={field && !isSelected ? { backgroundColor: `${fieldColor}20`, borderColor: fieldColor } : undefined}
-                title={`Bit [${bitIdx}] ${field ? `• ${field.name} (${field.bitRange})` : '• 미할당'}\n드래그하여 범위 선택`}
+                style={field && !isSelected ? { backgroundColor: `${fieldColor}22`, borderColor: fieldColor } : undefined}
+                title={`Bit [${bitIdx}] ${field ? `• ${field.name} (${field.bitRange})` : '• 미할당'}\n클릭 또는 드래그하여 선택`}
               >
                 {/* Bit Index Label */}
-                <span className="text-[10px] font-mono font-semibold text-slate-400">
+                <span className="text-[11px] font-mono font-bold text-slate-400 mb-1">
                   {bitIdx}
                 </span>
 
                 {/* Bit Value (0 or 1) */}
                 <div
-                  className={`w-6 h-6 rounded mt-0.5 font-mono text-xs font-bold flex items-center justify-center transition-colors ${
+                  className={`w-8 h-8 rounded-lg font-mono text-sm font-black flex items-center justify-center transition-all ${
                     bitVal === 1
-                      ? 'bg-emerald-500 text-slate-950 shadow-sm'
-                      : 'bg-slate-800 text-slate-300'
+                      ? 'bg-emerald-500 text-slate-950 shadow-md shadow-emerald-500/25'
+                      : 'bg-slate-800 text-slate-300 hover:bg-slate-700'
                   }`}
                 >
                   {bitVal}

@@ -1,7 +1,7 @@
-import React, { useState } from 'react';
+import React from 'react';
 import { FlashMemoryMap, FlashSegment, SegmentType, AccessAttribute, ValidationZone } from '../types/flash';
 import { MemoryMapValidator } from '../services/MemoryMapValidator';
-import { Plus, Trash2, AlertTriangle, CheckCircle2, Wrench, MessageSquare, ShieldCheck, Info } from 'lucide-react';
+import { Plus, Trash2, AlertTriangle, CheckCircle2, Wrench, MessageSquare, ShieldCheck, Sparkles } from 'lucide-react';
 
 interface MemoryMapEditorProps {
   map: FlashMemoryMap;
@@ -112,39 +112,39 @@ export const MemoryMapEditor: React.FC<MemoryMapEditorProps> = ({
   };
 
   return (
-    <div className="bg-slate-900 border border-slate-800 rounded-xl overflow-hidden shadow-lg text-xs">
+    <div className="bg-slate-900 border border-slate-800 rounded-2xl overflow-hidden shadow-2xl text-sm">
       {/* Header Toolbar */}
-      <div className="px-4 py-3 border-b border-slate-800 bg-slate-950/40 flex flex-wrap items-center justify-between gap-3">
+      <div className="px-6 py-4 border-b border-slate-800 bg-slate-950/60 flex flex-wrap items-center justify-between gap-4">
         <div className="flex items-center gap-3">
-          <span className="font-bold text-slate-100 text-sm">Flash Memory Segments</span>
-          <span className="font-mono text-slate-400 bg-slate-800 px-2 py-0.5 rounded text-[11px]">
-            {sorted.length}개 세그먼트 (클릭하여 셀 직접 편집)
+          <span className="font-bold text-slate-100 text-base">Flash Memory Segments</span>
+          <span className="font-mono text-slate-300 bg-slate-800/90 px-3 py-1 rounded-lg text-xs font-semibold">
+            {sorted.length}개 세그먼트 (셀 클릭 즉시 수정)
           </span>
           {validation.hasError ? (
-            <span className="flex items-center gap-1 text-red-400 font-semibold bg-red-950/40 px-2 py-0.5 rounded text-[11px]">
-              <AlertTriangle className="w-3.5 h-3.5" /> 주소 충돌 발견됨
+            <span className="flex items-center gap-1.5 text-red-400 font-semibold bg-red-950/60 px-3 py-1 rounded-lg text-xs border border-red-800/50">
+              <AlertTriangle className="w-4 h-4" /> 주소 충돌 발견됨
             </span>
           ) : (
-            <span className="flex items-center gap-1 text-emerald-400 font-semibold bg-emerald-950/30 px-2 py-0.5 rounded text-[11px]">
-              <CheckCircle2 className="w-3.5 h-3.5" /> 4KB 정렬 정상
+            <span className="flex items-center gap-1.5 text-emerald-400 font-semibold bg-emerald-950/40 px-3 py-1 rounded-lg text-xs border border-emerald-800/50">
+              <CheckCircle2 className="w-4 h-4" /> 4KB 정렬 정상
             </span>
           )}
         </div>
 
-        <div className="flex items-center gap-2">
+        <div className="flex items-center gap-2.5">
           <button
             onClick={handleAutoAlignAll}
-            className="flex items-center gap-1.5 px-3 py-1.5 bg-slate-800 hover:bg-slate-700 text-slate-300 rounded-lg text-xs font-semibold border border-slate-700 transition-colors"
+            className="flex items-center gap-2 px-4 py-2 bg-slate-800 hover:bg-slate-700 text-slate-200 rounded-xl text-xs font-semibold border border-slate-700 transition-all hover:scale-[1.02]"
             title="모든 세그먼트를 4KB 경계로 연속 자동 정렬"
           >
-            <Wrench className="w-3.5 h-3.5 text-blue-400" />
+            <Wrench className="w-4 h-4 text-blue-400" />
             <span>4KB 일괄 자동 정렬</span>
           </button>
           <button
             onClick={handleAddSegment}
-            className="flex items-center gap-1 px-3 py-1.5 bg-blue-600 hover:bg-blue-500 text-white rounded-lg text-xs font-semibold shadow transition-colors"
+            className="flex items-center gap-1.5 px-4 py-2 bg-blue-600 hover:bg-blue-500 text-white rounded-xl text-xs font-bold shadow-lg shadow-blue-500/25 transition-all hover:scale-[1.02]"
           >
-            <Plus className="w-3.5 h-3.5" />
+            <Plus className="w-4 h-4" />
             <span>+ 세그먼트 추가</span>
           </button>
         </div>
@@ -152,10 +152,10 @@ export const MemoryMapEditor: React.FC<MemoryMapEditorProps> = ({
 
       {/* Validation Errors Notice */}
       {validation.errors.length > 0 && (
-        <div className="bg-red-950/30 border-b border-red-900/40 px-4 py-2 space-y-0.5 text-[11px] text-red-300 font-mono">
+        <div className="bg-red-950/40 border-b border-red-900/50 px-6 py-2.5 space-y-1 text-xs text-red-300 font-mono">
           {validation.errors.map((err, i) => (
-            <div key={i} className="flex items-center gap-1.5">
-              <AlertTriangle className="w-3.5 h-3.5 text-red-400 flex-shrink-0" />
+            <div key={i} className="flex items-center gap-2">
+              <AlertTriangle className="w-4 h-4 text-red-400 flex-shrink-0" />
               <span>{err.message}</span>
             </div>
           ))}
@@ -166,20 +166,20 @@ export const MemoryMapEditor: React.FC<MemoryMapEditorProps> = ({
       <div className="overflow-x-auto">
         <table className="w-full text-left font-mono border-collapse">
           <thead>
-            <tr className="bg-slate-950/60 border-b border-slate-800 text-[11px] text-slate-400 font-sans select-none">
-              <th className="py-2.5 px-3 w-10 text-center">색상</th>
-              <th className="py-2.5 px-3 w-44">세그먼트명</th>
-              <th className="py-2.5 px-3 w-32">타입</th>
-              <th className="py-2.5 px-3 w-32">시작 주소 (Hex)</th>
-              <th className="py-2.5 px-3 w-32">끝 주소 (Hex)</th>
-              <th className="py-2.5 px-3 w-28">크기</th>
-              <th className="py-2.5 px-3 w-24">속성</th>
-              <th className="py-2.5 px-3 w-28 text-center">Info Block</th>
-              <th className="py-2.5 px-3 w-48">연동 검증영역 (Validation)</th>
-              <th className="py-2.5 px-3 w-16 text-right">삭제</th>
+            <tr className="bg-slate-950/80 border-b border-slate-800 text-xs text-slate-400 font-sans select-none">
+              <th className="py-3 px-4 w-12 text-center">색상</th>
+              <th className="py-3 px-4 w-52">세그먼트명</th>
+              <th className="py-3 px-4 w-36">타입</th>
+              <th className="py-3 px-4 w-36">시작 주소 (Hex)</th>
+              <th className="py-3 px-4 w-36">끝 주소 (Hex)</th>
+              <th className="py-3 px-4 w-36">크기</th>
+              <th className="py-3 px-4 w-28">속성</th>
+              <th className="py-3 px-4 w-28 text-center">Info Block</th>
+              <th className="py-3 px-4 w-56">연동 검증영역 (Validation)</th>
+              <th className="py-3 px-4 w-20 text-right">관리</th>
             </tr>
           </thead>
-          <tbody className="divide-y divide-slate-800/40">
+          <tbody className="divide-y divide-slate-800/50">
             {sorted.map(seg => {
               const isSelected = seg.id === selectedSegmentId;
               const endAddr = seg.startAddress + seg.size - 1;
@@ -189,36 +189,36 @@ export const MemoryMapEditor: React.FC<MemoryMapEditorProps> = ({
                   key={seg.id}
                   onClick={() => onSelectSegment(seg)}
                   className={`cursor-pointer transition-colors ${
-                    isSelected ? 'bg-blue-950/30' : 'hover:bg-slate-850/40'
+                    isSelected ? 'bg-blue-950/40' : 'hover:bg-slate-850/50'
                   }`}
                 >
                   {/* Color Picker */}
-                  <td className="py-2 px-3 text-center" onClick={e => e.stopPropagation()}>
+                  <td className="py-3 px-4 text-center" onClick={e => e.stopPropagation()}>
                     <input
                       type="color"
                       value={seg.color || '#3b82f6'}
                       onChange={e => handleUpdateSegment(seg.id, { color: e.target.value })}
-                      className="w-5 h-5 rounded cursor-pointer bg-transparent border-none"
+                      className="w-7 h-7 rounded-lg cursor-pointer bg-transparent border border-slate-700/60"
                       title="색상 선택"
                     />
                   </td>
 
                   {/* Name Input */}
-                  <td className="py-2 px-3" onClick={e => e.stopPropagation()}>
+                  <td className="py-3 px-4" onClick={e => e.stopPropagation()}>
                     <input
                       type="text"
                       value={seg.name}
                       onChange={e => handleUpdateSegment(seg.id, { name: e.target.value })}
-                      className="w-full bg-slate-950/80 border border-slate-700/60 rounded px-2 py-1 text-slate-100 font-semibold text-xs focus:border-blue-500 outline-none"
+                      className="w-full bg-slate-950 border border-slate-700/80 rounded-lg px-3 py-1.5 text-slate-100 font-bold text-sm focus:border-blue-500 outline-none"
                     />
                   </td>
 
                   {/* Type Dropdown */}
-                  <td className="py-2 px-3" onClick={e => e.stopPropagation()}>
+                  <td className="py-3 px-4" onClick={e => e.stopPropagation()}>
                     <select
                       value={seg.type}
                       onChange={e => handleUpdateSegment(seg.id, { type: e.target.value as SegmentType })}
-                      className="w-full bg-slate-950/80 border border-slate-700/60 rounded px-2 py-1 text-slate-200 text-xs outline-none"
+                      className="w-full bg-slate-950 border border-slate-700/80 rounded-lg px-2.5 py-1.5 text-slate-200 text-xs font-semibold outline-none"
                     >
                       <option value="bootloader">Bootloader</option>
                       <option value="firmware">Firmware</option>
@@ -233,7 +233,7 @@ export const MemoryMapEditor: React.FC<MemoryMapEditorProps> = ({
                   </td>
 
                   {/* Start Address Input */}
-                  <td className="py-2 px-3" onClick={e => e.stopPropagation()}>
+                  <td className="py-3 px-4" onClick={e => e.stopPropagation()}>
                     <input
                       type="text"
                       value={'0x' + seg.startAddress.toString(16).toUpperCase().padStart(8, '0')}
@@ -245,18 +245,18 @@ export const MemoryMapEditor: React.FC<MemoryMapEditorProps> = ({
                           handleUpdateSegment(seg.id, { startAddress: val });
                         }
                       }}
-                      className="w-full bg-slate-950/80 border border-slate-700/60 rounded px-2 py-1 text-blue-400 font-mono text-xs focus:border-blue-500 outline-none"
+                      className="w-full bg-slate-950 border border-slate-700/80 rounded-lg px-3 py-1.5 text-blue-400 font-mono text-sm font-semibold focus:border-blue-500 outline-none"
                     />
                   </td>
 
                   {/* End Address (Read Only Computed) */}
-                  <td className="py-2 px-3 text-slate-400 font-mono">
+                  <td className="py-3 px-4 text-slate-400 font-mono text-sm">
                     0x{endAddr.toString(16).toUpperCase().padStart(8, '0')}
                   </td>
 
                   {/* Size Input (Hex or Bytes) */}
-                  <td className="py-2 px-3" onClick={e => e.stopPropagation()}>
-                    <div className="flex items-center gap-1.5">
+                  <td className="py-3 px-4" onClick={e => e.stopPropagation()}>
+                    <div className="flex items-center gap-2">
                       <input
                         type="text"
                         value={'0x' + seg.size.toString(16).toUpperCase()}
@@ -268,20 +268,20 @@ export const MemoryMapEditor: React.FC<MemoryMapEditorProps> = ({
                             handleUpdateSegment(seg.id, { size: val });
                           }
                         }}
-                        className="w-20 bg-slate-950/80 border border-slate-700/60 rounded px-2 py-1 text-emerald-400 font-mono text-xs focus:border-blue-500 outline-none"
+                        className="w-24 bg-slate-950 border border-slate-700/80 rounded-lg px-3 py-1.5 text-emerald-400 font-mono text-sm font-semibold focus:border-blue-500 outline-none"
                       />
-                      <span className="text-[10px] text-slate-500">
+                      <span className="text-xs text-slate-400 font-sans font-medium whitespace-nowrap">
                         {MemoryMapValidator.formatSize(seg.size)}
                       </span>
                     </div>
                   </td>
 
                   {/* Access Dropdown */}
-                  <td className="py-2 px-3" onClick={e => e.stopPropagation()}>
+                  <td className="py-3 px-4" onClick={e => e.stopPropagation()}>
                     <select
                       value={seg.access}
                       onChange={e => handleUpdateSegment(seg.id, { access: e.target.value as AccessAttribute })}
-                      className="w-full bg-slate-950/80 border border-slate-700/60 rounded px-1.5 py-1 text-amber-400 text-xs outline-none"
+                      className="w-full bg-slate-950 border border-slate-700/80 rounded-lg px-2 py-1.5 text-amber-400 text-xs font-bold outline-none"
                     >
                       <option value="RO">RO</option>
                       <option value="RW">RW</option>
@@ -291,20 +291,20 @@ export const MemoryMapEditor: React.FC<MemoryMapEditorProps> = ({
                   </td>
 
                   {/* Info Block Toggle */}
-                  <td className="py-2 px-3 text-center" onClick={e => e.stopPropagation()}>
+                  <td className="py-3 px-4 text-center" onClick={e => e.stopPropagation()}>
                     <label className="inline-flex items-center cursor-pointer">
                       <input
                         type="checkbox"
                         checked={!!seg.isInfoBlock}
                         onChange={e => handleUpdateSegment(seg.id, { isInfoBlock: e.target.checked })}
-                        className="rounded bg-slate-950 border-slate-700 text-blue-600 focus:ring-0"
+                        className="w-4 h-4 rounded bg-slate-950 border-slate-700 text-blue-600 focus:ring-0 cursor-pointer"
                       />
                     </label>
                   </td>
 
                   {/* Linked Validation Zone */}
-                  <td className="py-2 px-3" onClick={e => e.stopPropagation()}>
-                    <div className="flex items-center gap-1.5">
+                  <td className="py-3 px-4" onClick={e => e.stopPropagation()}>
+                    <div className="flex items-center gap-2">
                       <select
                         value={seg.linkedValidationZoneId || ''}
                         onChange={e => {
@@ -315,7 +315,7 @@ export const MemoryMapEditor: React.FC<MemoryMapEditorProps> = ({
                             handleUpdateSegment(seg.id, { linkedValidationZoneId: val || undefined });
                           }
                         }}
-                        className="flex-1 bg-slate-950/80 border border-slate-700/60 rounded px-2 py-1 text-slate-300 text-xs outline-none"
+                        className="flex-1 bg-slate-950 border border-slate-700/80 rounded-lg px-2.5 py-1.5 text-slate-300 text-xs outline-none"
                       >
                         <option value="">미지정 (None)</option>
                         {map.validationZones.map(z => (
@@ -331,33 +331,33 @@ export const MemoryMapEditor: React.FC<MemoryMapEditorProps> = ({
                       {seg.linkedValidationZoneId && onNavigateToValidation && (
                         <button
                           onClick={() => onNavigateToValidation(seg.linkedValidationZoneId!)}
-                          className="p-1 text-slate-400 hover:text-blue-400 rounded"
+                          className="p-1.5 text-slate-400 hover:text-blue-400 rounded-lg hover:bg-slate-800 transition-colors"
                           title="해당 검증 페이지로 이동"
                         >
-                          <ShieldCheck className="w-3.5 h-3.5" />
+                          <ShieldCheck className="w-4 h-4" />
                         </button>
                       )}
                     </div>
                   </td>
 
                   {/* Actions (Notes, Delete) */}
-                  <td className="py-2 px-3 text-right" onClick={e => e.stopPropagation()}>
-                    <div className="flex items-center justify-end gap-1">
+                  <td className="py-3 px-4 text-right" onClick={e => e.stopPropagation()}>
+                    <div className="flex items-center justify-end gap-1.5">
                       {onOpenComments && (
                         <button
                           onClick={() => onOpenComments(seg.id, seg.name)}
-                          className="p-1 text-slate-500 hover:text-blue-400 rounded hover:bg-slate-800"
+                          className="p-1.5 text-slate-400 hover:text-blue-400 rounded-lg hover:bg-slate-800 transition-colors"
                           title="주석/노트"
                         >
-                          <MessageSquare className="w-3.5 h-3.5" />
+                          <MessageSquare className="w-4 h-4" />
                         </button>
                       )}
                       <button
                         onClick={() => handleDelete(seg.id)}
-                        className="p-1 text-slate-500 hover:text-red-400 rounded hover:bg-slate-800"
+                        className="p-1.5 text-slate-400 hover:text-red-400 rounded-lg hover:bg-slate-800 transition-colors"
                         title="세그먼트 삭제"
                       >
-                        <Trash2 className="w-3.5 h-3.5" />
+                        <Trash2 className="w-4 h-4" />
                       </button>
                     </div>
                   </td>
@@ -369,13 +369,16 @@ export const MemoryMapEditor: React.FC<MemoryMapEditorProps> = ({
       </div>
 
       {/* Footer Add Row Shortcut */}
-      <div className="p-2.5 bg-slate-950/60 border-t border-slate-800/80 flex items-center justify-between text-[11px] text-slate-500">
-        <span>팁: 표의 셀(이름, 주소, 크기, 타입, Info Block, 검증영역)을 클릭하여 바로 편집할 수 있습니다.</span>
+      <div className="px-6 py-3.5 bg-slate-950/80 border-t border-slate-800 flex items-center justify-between text-xs text-slate-400">
+        <span className="flex items-center gap-1.5">
+          <Sparkles className="w-3.5 h-3.5 text-blue-400" />
+          <span>팁: 표의 셀(이름, 주소, 크기, 타입, Info Block, 검증영역)을 클릭하여 바로 편집할 수 있습니다.</span>
+        </span>
         <button
           onClick={handleAddSegment}
-          className="text-blue-400 hover:text-blue-300 font-semibold flex items-center gap-1"
+          className="text-blue-400 hover:text-blue-300 font-bold flex items-center gap-1.5 transition-colors"
         >
-          <Plus className="w-3.5 h-3.5" />
+          <Plus className="w-4 h-4" />
           <span>새 세그먼트 행 추가</span>
         </button>
       </div>

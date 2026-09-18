@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useMemo } from 'react';
+import React, { useState, useEffect, useMemo, useCallback } from 'react';
 import { FlashMemoryMap, AddressPreset, FlashSegment } from './types/flash';
 import { PresetManager } from './services/PresetManager';
 import { Navbar } from './components/Navbar';
@@ -7,6 +7,7 @@ import { SectorHeatmap } from './components/SectorHeatmap';
 import { MemoryMapEditor } from './components/MemoryMapEditor';
 import { RegisterConfigWorkspace } from './components/RegisterConfigWorkspace';
 import { ValidationWorkspace } from './components/ValidationWorkspace';
+import { FlashDiffViewer } from './components/FlashDiffViewer';
 import { FormatConverterView } from './components/FormatConverterView';
 import { SplitMergeStudio } from './components/SplitMergeStudio';
 import { CodeGeneratorPreview } from './components/CodeGeneratorPreview';
@@ -15,8 +16,20 @@ import { ExcelSyncModal } from './components/ExcelSyncModal';
 import { CommentsModal } from './components/CommentsModal';
 import { ExportModal } from './components/ExportModal';
 import { SearchResultItem } from './services/SearchIndex';
+import { UploadCloud, FileCheck } from 'lucide-react';
 
 export const App: React.FC = () => {
+  // UI Scale / Zoom State for High-Res Office Desktop Monitors (100%, 115%, 130%)
+  const [uiScale, setUiScale] = useState<number>(() => {
+    const saved = localStorage.getItem('tli_flash_ui_scale');
+    return saved ? parseFloat(saved) : 1.15; // default to 115% for comfortable desktop reading
+  });
+
+  const handleSetUiScale = (scale: number) => {
+    setUiScale(scale);
+    localStorage.setItem('tli_flash_ui_scale', scale.toString());
+  };
+
   // Preset & Map State
   const defaultPresets = useMemo(() => PresetManager.getDefaultPresets(), []);
   const [presets, setPresets] = useState<AddressPreset[]>(() => {
@@ -42,23 +55,117 @@ export const App: React.FC = () => {
   const [isExcelSyncOpen, setIsExcelSyncOpen] = useState(false);
   const [commentTarget, setCommentTarget] = useState<{ id: string; name: string; type: any } | null>(null);
 
+  // Global Drag & Drop Overlay State
+  const [isDraggingFile, setIsDraggingFile] = useState(false);
+  const [toastMessage, setToastMessage] = useState<string | null>(null);
+
+  const showToast = (msg: string) => {
+    setToastMessage(msg);
+    setTimeout(() => setToastMessage(null), 3500);
+  };
+
   // New Profile Form State
   const [newProfileName, setNewProfileName] = useState('TL_CUSTOM_CHIP_01');
   const [newProfileCapacityMb, setNewProfileCapacityMb] = useState(1);
 
-  // Keyboard shortcut for Ctrl+K
+  // Keyboard shortcuts: Ctrl+1..7 (tabs), Ctrl+E (export), Ctrl+K (search), Esc (close)
   useEffect(() => {
     const handleKeyDown = (e: KeyboardEvent) => {
       if ((e.ctrlKey || e.metaKey) && e.key.toLowerCase() === 'k') {
         e.preventDefault();
         setIsSearchOpen(true);
+      } else if ((e.ctrlKey || e.metaKey) && e.key.toLowerCase() === 'e') {
+        e.preventDefault();
+        setIsExportModalOpen(true);
+      } else if (e.key === 'Escape') {
+        setIsSearchOpen(false);
+        setIsExportModalOpen(false);
+        setIsNewProfileModalOpen(false);
+        setIsExcelSyncOpen(false);
+        setCommentTarget(null);
+      } else if ((e.ctrlKey || e.metaKey) && e.key >= '1' && e.key <= '7') {
+        e.preventDefault();
+        const tabMap: { [k: string]: string } = {
+          '1': 'memory_map',
+          '2': 'register_config',
+          '3': 'validation',
+          '4': 'diff_compare',
+          '5': 'converter',
+          '6': 'split_merge',
+          '7': 'code_gen',
+        };
+        setCurrentTab(tabMap[e.key]);
       }
     };
     window.addEventListener('keydown', handleKeyDown);
     return () => window.removeEventListener('keydown', handleKeyDown);
   }, []);
 
-  // Generate contiguous binary buffer with 0xFF padding for validation and export
+  // Global Drag & Drop Handlers for instantaneous file importing
+  useEffect(() => {
+    const handleDragOver = (e: DragEvent) => {
+      e.preventDefault();
+      e.stopPropagation();
+      if (!isDraggingFile) setIsDraggingFile(true);
+    };
+
+    const handleDragLeave = (e: DragEvent) => {
+      e.preventDefault();
+      e.stopPropagation();
+      if (e.relatedTarget === null) {
+        setIsDraggingFile(false);
+      }
+    };
+
+    const handleDrop = async (e: DragEvent) => {
+      e.preventDefault();
+      e.stopPropagation();
+      setIsDraggingFile(false);
+
+      const files = e.dataTransfer?.files;
+      if (!files || files.length === 0) return;
+
+      const file = files[0];
+      const ext = file.name.split('.').pop()?.toLowerCase();
+
+      if (ext === 'json') {
+        try {
+          const text = await file.text();
+          const parsed = JSON.parse(text) as FlashMemoryMap;
+          if (parsed.chipName && parsed.segments) {
+            setMap(parsed);
+            showToast(`JSON 프로젝트 [${file.name}]을 성공적으로 로드했습니다.`);
+          }
+        } catch (err) {
+          alert('올바른 JSON 프로젝트 파일이 아닙니다.');
+        }
+      } else if (ext === 'xlsx') {
+        setIsExcelSyncOpen(true);
+        showToast(`Excel 파일 [${file.name}] 감지: Excel 연동 모달을 열었습니다.`);
+      } else if (ext === 'bin' || ext === 'hex' || ext === 'srec') {
+        setCurrentTab('converter');
+        showToast(`바이너리 파일 [${file.name}] 감지: 포맷 변환 탭으로 이동했습니다.`);
+      } else {
+        showToast(`지원하지 않는 파일 형식입니다: .${ext}`);
+      }
+    };
+
+    window.addEventListener('dragover', handleDragOver);
+    window.addEventListener('dragleave', handleDragLeave);
+    window.addEventListener('drop', handleDrop);
+
+    return () => {
+      window.removeEventListener('dragover', handleDragOver);
+      window.removeEventListener('dragleave', handleDragLeave);
+      window.removeEventListener('drop', handleDrop);
+    };
+  }, [isDraggingFile]);
+
+  // High-Speed Memoized syntheticFlashImage computation
+  const segmentSignature = useMemo(() => {
+    return map.segments.map(s => `${s.id}-${s.startAddress}-${s.size}`).join('|');
+  }, [map.segments]);
+
   const syntheticFlashImage = useMemo(() => {
     const totalSize = map.totalCapacity || 1048576;
     const buf = new Uint8Array(totalSize);
@@ -68,7 +175,6 @@ export const App: React.FC = () => {
       if (seg.binaryData) {
         buf.set(seg.binaryData.subarray(0, seg.size), seg.startAddress);
       } else {
-        // Deterministic dummy pattern for testing (e.g. 0xA5, 0x5A)
         for (let i = 0; i < Math.min(seg.size, 1024); i++) {
           buf[seg.startAddress + i] = (seg.startAddress + i) & 0xff;
         }
@@ -76,7 +182,8 @@ export const App: React.FC = () => {
     }
 
     return buf;
-  }, [map]);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [segmentSignature, map.totalCapacity, map.defaultPadding]);
 
   // Handle Preset Switching
   const handleSelectPreset = (presetId: string) => {
@@ -154,8 +261,11 @@ export const App: React.FC = () => {
   };
 
   return (
-    <div className="min-h-screen bg-slate-950 text-slate-100 flex flex-col font-sans">
-      {/* Top Navigation */}
+    <div
+      className="min-h-screen bg-slate-950 text-slate-100 flex flex-col font-sans antialiased transition-all"
+      style={{ zoom: uiScale }}
+    >
+      {/* Top Navigation Bar with Scale Controller */}
       <Navbar
         currentTab={currentTab}
         onSelectTab={setCurrentTab}
@@ -167,12 +277,14 @@ export const App: React.FC = () => {
         onOpenExportModal={() => setIsExportModalOpen(true)}
         onCreateBlankProfile={() => setIsNewProfileModalOpen(true)}
         onExportJson={handleExportProjectJson}
+        uiScale={uiScale}
+        onSetUiScale={handleSetUiScale}
       />
 
-      {/* Main Workspace Body */}
-      <main className="flex-1 max-w-7xl w-full mx-auto px-4 sm:px-6 py-4 space-y-4">
+      {/* Main Workspace Body - High-Scale Wide Desktop Layout (max-w-[1800px]) */}
+      <main className="flex-1 max-w-[1800px] w-full mx-auto px-6 sm:px-8 py-5 space-y-5">
         {currentTab === 'memory_map' && (
-          <div className="space-y-4">
+          <div className="space-y-5 animate-in fade-in duration-200">
             {/* Interactive Visual Memory Bar */}
             <InteractiveMemoryBar
               map={map}
@@ -200,37 +312,60 @@ export const App: React.FC = () => {
         )}
 
         {currentTab === 'register_config' && (
-          <RegisterConfigWorkspace
-            regions={map.registerRegions}
-            onChangeRegions={regs => setMap({ ...map, registerRegions: regs })}
-            onOpenExcelSync={() => setIsExcelSyncOpen(true)}
-            selectedRegionId={selectedRegionId}
-            selectedRegisterId={selectedRegisterId}
-            onSelectRegister={(regId, rId) => {
-              setSelectedRegionId(regId);
-              setSelectedRegisterId(rId);
-            }}
-          />
+          <div className="animate-in fade-in duration-200">
+            <RegisterConfigWorkspace
+              regions={map.registerRegions}
+              onChangeRegions={regs => setMap({ ...map, registerRegions: regs })}
+              onOpenExcelSync={() => setIsExcelSyncOpen(true)}
+              selectedRegionId={selectedRegionId}
+              selectedRegisterId={selectedRegisterId}
+              onSelectRegister={(regId, rId) => {
+                setSelectedRegionId(regId);
+                setSelectedRegisterId(rId);
+              }}
+            />
+          </div>
         )}
 
         {currentTab === 'validation' && (
-          <ValidationWorkspace
-            map={map}
-            onChangeMap={setMap}
-            syntheticFlashImage={syntheticFlashImage}
-          />
+          <div className="animate-in fade-in duration-200">
+            <ValidationWorkspace
+              map={map}
+              onChangeMap={setMap}
+              syntheticFlashImage={syntheticFlashImage}
+            />
+          </div>
         )}
 
-        {currentTab === 'converter' && <FormatConverterView />}
+        {currentTab === 'diff_compare' && (
+          <div className="animate-in fade-in duration-200">
+            <FlashDiffViewer
+              currentMap={map}
+              presets={presets}
+            />
+          </div>
+        )}
+
+        {currentTab === 'converter' && (
+          <div className="animate-in fade-in duration-200">
+            <FormatConverterView />
+          </div>
+        )}
 
         {currentTab === 'split_merge' && (
-          <SplitMergeStudio
-            map={map}
-            syntheticFlashImage={syntheticFlashImage}
-          />
+          <div className="animate-in fade-in duration-200">
+            <SplitMergeStudio
+              map={map}
+              syntheticFlashImage={syntheticFlashImage}
+            />
+          </div>
         )}
 
-        {currentTab === 'code_gen' && <CodeGeneratorPreview map={map} />}
+        {currentTab === 'code_gen' && (
+          <div className="animate-in fade-in duration-200">
+            <CodeGeneratorPreview map={map} />
+          </div>
+        )}
       </main>
 
       {/* Global Search Modal (Ctrl+K) */}
@@ -241,7 +376,7 @@ export const App: React.FC = () => {
         onNavigate={handleNavigate}
       />
 
-      {/* Universal Export Modal */}
+      {/* Universal Export Modal (Ctrl+E) */}
       <ExportModal
         isOpen={isExportModalOpen}
         onClose={() => setIsExportModalOpen(false)}
@@ -276,61 +411,62 @@ export const App: React.FC = () => {
 
       {/* New Profile Creation Modal */}
       {isNewProfileModalOpen && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/70 backdrop-blur-sm p-4 animate-in fade-in">
-          <div className="w-full max-w-md bg-slate-900 border border-slate-700 rounded-xl p-5 shadow-2xl space-y-4 text-xs">
-            <div className="border-b border-slate-800 pb-2">
-              <h3 className="text-sm font-bold text-slate-100">신규 칩 프로파일 생성 (처음부터 작성)</h3>
-              <p className="text-[11px] text-slate-400 mt-0.5">
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/75 backdrop-blur-sm p-4 animate-in fade-in">
+          <div className="w-full max-w-md bg-slate-900 border border-slate-700 rounded-2xl p-6 shadow-2xl space-y-4 text-sm">
+            <div className="border-b border-slate-800 pb-3">
+              <h3 className="text-base font-bold text-slate-100">신규 칩 프로파일 생성 (처음부터 작성)</h3>
+              <p className="text-xs text-slate-400 mt-1">
                 기존 템플릿 없이 완전 빈 캔버스(Clean Slate)에서 플래시 맵 작성을 시작합니다.
               </p>
             </div>
 
-            <div className="space-y-3">
+            <div className="space-y-3.5">
               <div>
-                <label className="block text-slate-300 font-semibold mb-1">칩 / 프로젝트 이름 *</label>
+                <label className="block text-slate-300 font-semibold mb-1 text-xs">칩 / 프로젝트 이름 *</label>
                 <input
                   type="text"
                   value={newProfileName}
                   onChange={e => setNewProfileName(e.target.value)}
                   placeholder="예: TL2400_OLED_TCON"
-                  className="w-full bg-slate-950 border border-slate-700 rounded px-3 py-2 text-slate-100 font-mono focus:border-blue-500 outline-none"
+                  className="w-full bg-slate-950 border border-slate-700 rounded-xl px-3.5 py-2 text-slate-100 font-mono focus:border-blue-500 outline-none text-sm font-semibold"
                   autoFocus
                 />
               </div>
 
               <div>
-                <label className="block text-slate-300 font-semibold mb-1">플래시 메모리 전체 용량</label>
+                <label className="block text-slate-300 font-semibold mb-1 text-xs">플래시 메모리 전체 용량</label>
                 <div className="grid grid-cols-3 gap-2">
                   {[1, 2, 4].map(mb => (
                     <button
                       key={mb}
                       type="button"
                       onClick={() => setNewProfileCapacityMb(mb)}
-                      className={`p-2.5 rounded-lg border font-mono text-center transition-all ${
+                      className={`p-3 rounded-xl border font-mono text-center transition-all ${
                         newProfileCapacityMb === mb
-                          ? 'border-blue-500 bg-blue-950/40 text-blue-300 font-bold'
-                          : 'border-slate-800 bg-slate-950/60 text-slate-400 hover:border-slate-700'
+                          ? 'border-blue-500 bg-blue-950/50 text-blue-300 font-bold shadow-md shadow-blue-500/20'
+                          : 'border-slate-800 bg-slate-950 text-slate-400 hover:border-slate-700'
                       }`}
                     >
-                      {mb} MB (0x{((mb * 1024 * 1024) - 1).toString(16).toUpperCase()})
+                      <div className="text-sm font-bold">{mb} MB</div>
+                      <div className="text-[10px] text-slate-500 mt-0.5">0x{((mb * 1024 * 1024) - 1).toString(16).toUpperCase()}</div>
                     </button>
                   ))}
                 </div>
               </div>
             </div>
 
-            <div className="flex justify-end gap-2 pt-2 border-t border-slate-800">
+            <div className="flex justify-end gap-2.5 pt-3 border-t border-slate-800">
               <button
                 type="button"
                 onClick={() => setIsNewProfileModalOpen(false)}
-                className="px-3.5 py-1.5 bg-slate-800 hover:bg-slate-700 text-slate-300 rounded-lg"
+                className="px-4 py-2 bg-slate-800 hover:bg-slate-700 text-slate-300 rounded-xl text-xs font-semibold"
               >
                 취소
               </button>
               <button
                 type="button"
                 onClick={handleConfirmCreateProfile}
-                className="px-4 py-1.5 bg-blue-600 hover:bg-blue-500 text-white rounded-lg font-semibold shadow"
+                className="px-5 py-2 bg-blue-600 hover:bg-blue-500 text-white rounded-xl font-bold shadow-lg shadow-blue-500/25 text-xs transition-all"
               >
                 생성하기 (Blank Slate)
               </button>
@@ -339,9 +475,29 @@ export const App: React.FC = () => {
         </div>
       )}
 
-      {/* Footer */}
-      <footer className="border-t border-slate-900 bg-slate-950 py-2.5 text-center text-slate-600 text-[11px] font-mono">
-        TLiFlashManager • ARM Cortex-M0 TCON Flash Engineering Platform • 100% Client-Side Secure Processing
+      {/* Global Drag & Drop Overlay */}
+      {isDraggingFile && (
+        <div className="fixed inset-0 z-50 bg-blue-950/80 backdrop-blur-md border-4 border-dashed border-blue-400 flex flex-col items-center justify-center pointer-events-none animate-in fade-in">
+          <UploadCloud className="w-20 h-20 text-blue-400 animate-bounce mb-4" />
+          <h2 className="text-2xl font-black text-white">파일을 놓으면 즉시 로드됩니다</h2>
+          <p className="text-blue-200 text-sm mt-2">
+            지원 포맷: .json (플래시 맵 프로젝트), .xlsx (엑셀 레지스터), .bin, .hex, .srec
+          </p>
+        </div>
+      )}
+
+      {/* Toast Notification */}
+      {toastMessage && (
+        <div className="fixed bottom-10 right-10 z-50 bg-slate-900 border border-blue-500 text-slate-100 px-5 py-3 rounded-xl shadow-2xl flex items-center gap-3 animate-in slide-in-from-bottom-5">
+          <FileCheck className="w-5 h-5 text-emerald-400 flex-shrink-0" />
+          <span className="text-xs font-semibold">{toastMessage}</span>
+        </div>
+      )}
+
+      {/* Desktop Footer */}
+      <footer className="border-t border-slate-900 bg-slate-950/80 py-3 px-6 text-center text-slate-500 text-xs font-mono flex flex-wrap justify-between items-center max-w-[1800px] w-full mx-auto">
+        <span>TLiFlashManager • ARM Cortex-M0 TCON Flash Engineering Platform</span>
+        <span>단축키: Ctrl+1..7 (탭 전환), Ctrl+E (내보내기), Ctrl+K (검색), Esc (닫기) • 100% Client-Side Secure</span>
       </footer>
     </div>
   );
